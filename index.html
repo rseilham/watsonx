@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>4 MyResource Fullscreen Chat </title>
+  <title>MyResource Fullscreen Chat</title>
   <style>
     html, body { margin: 0; padding: 0; height: 100%; width: 100%; background: #fff; }
     #chat-root, .ibm-web-chat, iframe {
@@ -13,38 +13,103 @@
       border: 0 !important; max-width: 100vw !important; max-height: 100vh !important;
       z-index: 9999 !important;
     }
-    .WACLauncher__Button, .WACLauncher__Container { display: none !important; }
+    /* keep menu positioning sane, as on the source page */
+    .cds--btn--icon-only.WACChatHeaderOverflowMenu__Button { position: relative; }
+    #WACContainer.WACContainer .cds--menu { position: absolute; top: 100%; left: 0; z-index: 1000; }
+    #WACContainer.WACContainer .cds--menu--md .cds--menu-item { width: max-content; }
   </style>
 </head>
 <body>
   <div id="chat-root"></div>
 
   <script>
+    // Collect messages so we can export a transcript later
+    const messages = [];
+
+    // Build a very simple PDF from the collected messages
+    function downloadTranscript() {
+      const docContent = [
+        { text: 'MyResource Chat Transcript', style: 'header', margin: [0, 0, 0, 12] },
+        ...messages.map((m) => {
+          const who = m?.message?.role || m?.role || 'system';
+          const text = m?.message?.text || m?.text || JSON.stringify(m);
+          return { text: who.toUpperCase() + ': ' + text, margin: [0, 4, 0, 0] };
+        })
+      ];
+      const docDef = { content: docContent, styles: { header: { fontSize: 16, bold: true } } };
+      window.pdfMake.createPdf(docDef).download('myresource-chat.pdf');
+    }
+
+    // Insert a new item into the chat header overflow menu
+    function wireMenuOptions() {
+      // The header button is created after render, so observe the container
+      const container = document.getElementById('WACContainer') || document.body;
+      const observer = new MutationObserver(() => {
+        const overflowBtn = container.querySelector('.WACChatHeaderOverflowMenu__Button');
+        if (!overflowBtn) return;
+
+        // Open the menu once to force the menu DOM to exist, then close it
+        overflowBtn.click();
+        const menu = container.querySelector('.cds--menu');
+        if (menu && !menu.querySelector('[data-myresource-download]')) {
+          const item = document.createElement('button');
+          item.type = 'button';
+          item.className = 'cds--menu-item';
+          item.setAttribute('data-myresource-download', 'true');
+          item.textContent = 'Download transcript';
+          item.onclick = () => {
+            // close any open menu then download
+            document.body.click();
+            downloadTranscript();
+          };
+          menu.appendChild(item);
+        }
+        // close the menu after wiring
+        document.body.click();
+        observer.disconnect();
+      });
+      observer.observe(container, { childList: true, subtree: true });
+    }
+
+    // Watson Assistant configuration with your IDs from the source page
     window.watsonAssistantChatOptions = {
       integrationID: "d197f255-bb01-424d-974c-a035ab081c4f",
       region: "us-east",
       serviceInstanceID: "737c6533-0442-4420-b341-66368cbe4b6c",
-      subscriptionID: "0e1a6bca95e045edb0231fc92b3e5ca8",   // required for this integration
+      subscriptionID: "0e1a6bca95e045edb0231fc92b3e5ca8", // present in the original page
       showLauncher: false,
       openChatByDefault: true,
       hideCloseButton: true,
       onLoad: function(instance) {
+        // capture messages to build the transcript
+        instance.on({ type: "send",    handler: e => messages.push({ role: "user",    message: e.data }) });
+        instance.on({ type: "receive", handler: e => messages.push({ role: "assistant", message: e.data }) });
+        instance.on({ type: "history:begin", handler: e => Array.isArray(e.messages) && e.messages.forEach(m => messages.push(m)) });
+
+        // render into our fixed container and open immediately
         instance.render({ element: document.getElementById("chat-root") }).then(function() {
           instance.openWindow();
+          wireMenuOptions(); // add the custom menu item after render
         });
       }
     };
 
-    // load the Watson script
-    (function() {
-      var s = document.createElement("script");
-      s.src = "https://web-chat.global.assistant.watson.appdomain.cloud/versions/latest/WatsonAssistantChatEntry.js";
-      s.async = true;
-      document.head.appendChild(s);
+    // Load pdfmake and the Watson script
+    (function loadScripts() {
+      const pdf = document.createElement('script');
+      pdf.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.72/pdfmake.min.js';
+      pdf.onload = () => {
+        const vfs = document.createElement('script');
+        vfs.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.72/vfs_fonts.js';
+        document.head.appendChild(vfs);
+      };
+      document.head.appendChild(pdf);
+
+      const w = document.createElement("script");
+      w.src = "https://web-chat.global.assistant.watson.appdomain.cloud/versions/latest/WatsonAssistantChatEntry.js";
+      w.async = true;
+      document.head.appendChild(w);
     })();
   </script>
-
-  <!-- simple fallback if something blocks the script -->
-  <noscript>Please enable JavaScript to use the chat.</noscript>
 </body>
 </html>
