@@ -4,21 +4,19 @@
   <meta charset="UTF-8">
   <title>Penn State Go Chat</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
   <style>
     html, body {
       height: 100%;
       margin: 0;
       padding: 0;
+      overflow: hidden;
     }
   </style>
 </head>
 <body>
-
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
-  // Create full-screen iframe
   const frame = document.createElement("iframe");
   frame.title = "watsonx-orchestrate-chat";
   frame.style.position = "fixed";
@@ -26,41 +24,63 @@ document.addEventListener("DOMContentLoaded", function () {
   frame.style.left = "0";
   frame.style.right = "0";
   frame.style.bottom = "0";
+  frame.style.width = "100%";
+  frame.style.height = "100%";
   frame.style.border = "0";
+  frame.style.display = "block";
   frame.allow = "clipboard-read; clipboard-write; microphone; camera";
-
   document.body.appendChild(frame);
 
   const doc = frame.contentDocument;
-
-  // Build minimal document inside iframe
   doc.open();
-  doc.write(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <style>
-        html, body {
-          height: 100%;
-          margin: 0;
-        }
-        #WXOContainer {
-          height: 100%;
-        }
-      </style>
-    </head>
-    <body>
-      <div id="WXOContainer"></div>
-    </body>
-    </html>
-  `);
+  doc.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+    .wxo-chat-stage {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    #WXOContainer.WXOContainer {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+
+    /* Helps with menus and popovers inside the widget */
+    #WXOContainer.WXOContainer .cds--menu {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      z-index: 1000;
+    }
+    #WXOContainer.WXOContainer .cds--menu--md .cds--menu-item {
+      width: max-content;
+    }
+  </style>
+</head>
+<body>
+  <div class="wxo-chat-stage">
+    <div id="WXOContainer" class="WXOContainer"></div>
+  </div>
+</body>
+</html>`);
   doc.close();
 
   const mount = doc.getElementById("WXOContainer");
 
-  // Configure Watson
   frame.contentWindow.wxOConfiguration = {
     orchestrationID: "594368b649164c1eb07b9ac5f7f446df_a66215dd-36fd-4959-97bd-a0a103ed374d",
     hostURL: "https://us-south.watson-orchestrate.cloud.ibm.com",
@@ -70,24 +90,16 @@ document.addEventListener("DOMContentLoaded", function () {
       agentId: "c11ad89a-7918-4fe9-b070-51594af8b294",
       agentEnvironmentId: "c2aa993c-1b0a-4b62-81b7-153ea407a04a"
     },
-    header: {
-      showResetButton: true,
-      showAiDisclaimer: true
-    },
+    header: { showResetButton: true, showAiDisclaimer: true },
     style: {
       headerColor: "#1E407C",
       userMessageBackgroundColor: "#96BEE6",
       primaryColor: "#1E407C",
       showBackgroundGradient: true
     },
-    layout: {
-      form: "custom",
-      customElement: mount,
-      showOrchestrateHeader: true
-    }
+    layout: { form: "custom", customElement: mount, showOrchestrateHeader: true }
   };
 
-  // Load IBM loader
   const s = doc.createElement("script");
   s.src = "https://us-south.watson-orchestrate.cloud.ibm.com/wxochat/wxoLoader.js?embed=true";
   s.onload = function () {
@@ -97,6 +109,5 @@ document.addEventListener("DOMContentLoaded", function () {
 
 });
 </script>
-
 </body>
 </html>
