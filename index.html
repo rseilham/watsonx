@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Penn State Go Chat</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">  <style>
     html, body {
       height: 100%;
       margin: 0;
@@ -15,58 +14,154 @@
 </head>
 <body>
 <script>
-document.addEventListener("DOMContentLoaded", function () {
+(function () {
+  const VIEWPORT_CONTENT =
+    "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content";
+
+  const IBM_CONFIG = {
+    orchestrationID: "594368b649164c1eb07b9ac5f7f446df_a66215dd-36fd-4959-97bd-a0a103ed374d",
+    hostURL: "https://us-south.watson-orchestrate.cloud.ibm.com",
+    deploymentPlatform: "ibmcloud",
+    crn: "crn:v1:bluemix:public:watsonx-orchestrate:us-south:a/594368b649164c1eb07b9ac5f7f446df:a66215dd-36fd-4959-97bd-a0a103ed374d::",
+    chatOptions: {
+      agentId: "c11ad89a-7918-4fe9-b070-51594af8b294",
+      agentEnvironmentId: "c2aa993c-1b0a-4b62-81b7-153ea407a04a"
+    },
+    header: {
+      showResetButton: true,
+      showAiDisclaimer: true
+    },
+    style: {
+      headerColor: "#1E407C",
+      userMessageBackgroundColor: "#96BEE6",
+      primaryColor: "#1E407C",
+      showBackgroundGradient: true
+    }
+  };
+
+  function upsertViewportMeta(doc, content) {
+    let meta = doc.querySelector('meta[name="viewport"]');
+    if (!meta) {
+      meta = doc.createElement("meta");
+      meta.name = "viewport";
+      doc.head.appendChild(meta);
+    }
+    meta.setAttribute("content", content);
+  }
+
+  upsertViewportMeta(document, VIEWPORT_CONTENT);
+
+  Object.assign(document.documentElement.style, {
+    height: "100%"
+  });
+
+  Object.assign(document.body.style, {
+    margin: "0",
+    height: "100%",
+    overflow: "hidden",
+    position: "relative"
+  });
+
+  const existing = document.getElementById("wxo-mobile-host-frame");
+  if (existing) existing.remove();
 
   const frame = document.createElement("iframe");
+  frame.id = "wxo-mobile-host-frame";
   frame.title = "watsonx-orchestrate-chat";
-  frame.style.position = "fixed";
-  frame.style.top = "0";
-  frame.style.left = "0";
-  frame.style.right = "0";
-  frame.style.bottom = "0";
-  frame.style.width = "100%";
-  frame.style.height = "100%";
-  frame.style.border = "0";
-  frame.style.display = "block";
   frame.allow = "clipboard-read; clipboard-write; microphone; camera";
+  frame.setAttribute("scrolling", "no");
+  frame.style.cssText = [
+    "position:absolute",
+    "left:0",
+    "top:0",
+    "width:100%",
+    "height:100%",
+    "border:0",
+    "display:block",
+    "background:transparent",
+    "z-index:1"
+  ].join(";");
   document.body.appendChild(frame);
+
+  let controller = null;
+  let baselineViewportHeight = 0;
+
+  function getViewportBox() {
+    const vv = window.visualViewport;
+    return {
+      left: vv ? vv.offsetLeft : 0,
+      top: vv ? vv.offsetTop : 0,
+      width: vv ? vv.width : window.innerWidth,
+      height: vv ? vv.height : window.innerHeight
+    };
+  }
+
+  function syncFrameToViewport() {
+    const box = getViewportBox();
+
+    if (!baselineViewportHeight || box.height > baselineViewportHeight) {
+      baselineViewportHeight = box.height;
+    }
+
+    frame.style.left = box.left + "px";
+    frame.style.top = box.top + "px";
+    frame.style.width = box.width + "px";
+    frame.style.height = box.height + "px";
+
+    if (controller) {
+      controller.onViewportResize(box, baselineViewportHeight);
+    }
+  }
+
+  syncFrameToViewport();
+
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", syncFrameToViewport, { passive: true });
+  } else {
+    window.addEventListener("resize", syncFrameToViewport, { passive: true });
+  }
 
   const doc = frame.contentDocument;
   doc.open();
-  doc.write(`<!DOCTYPE html>
+  doc.write(`<!doctype html>
 <html>
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="${VIEWPORT_CONTENT}" />
   <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
     html, body {
       height: 100%;
       margin: 0;
-      padding: 0;
       overflow: hidden;
-    }
-    .wxo-chat-stage {
-      height: 100%;
-      width: 100%;
-      margin: 0;
-      padding: 0;
-    }
-    #WXOContainer.WXOContainer {
-      height: 100%;
-      width: 100%;
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
+      background: transparent;
     }
 
-    /* Helps with menus and popovers inside the widget */
-    #WXOContainer.WXOContainer .cds--menu {
+    body {
+      overscroll-behavior: none;
+    }
+
+    .wxo-chat-stage,
+    #WXOContainer {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      position: relative;
+    }
+
+    #WXOContainer .cds--menu {
       position: absolute;
       top: 100%;
       left: 0;
       z-index: 1000;
     }
-    #WXOContainer.WXOContainer .cds--menu--md .cds--menu-item {
+
+    #WXOContainer .cds--menu--md .cds--menu-item {
       width: max-content;
     }
   </style>
@@ -82,32 +177,380 @@ document.addEventListener("DOMContentLoaded", function () {
   const mount = doc.getElementById("WXOContainer");
 
   frame.contentWindow.wxOConfiguration = {
-    orchestrationID: "594368b649164c1eb07b9ac5f7f446df_a66215dd-36fd-4959-97bd-a0a103ed374d",
-    hostURL: "https://us-south.watson-orchestrate.cloud.ibm.com",
-    deploymentPlatform: "ibmcloud",
-    crn: "crn:v1:bluemix:public:watsonx-orchestrate:us-south:a/594368b649164c1eb07b9ac5f7f446df:a66215dd-36fd-4959-97bd-a0a103ed374d::",
-    chatOptions: {
-      agentId: "c11ad89a-7918-4fe9-b070-51594af8b294",
-      agentEnvironmentId: "c2aa993c-1b0a-4b62-81b7-153ea407a04a"
-    },
-    header: { showResetButton: true, showAiDisclaimer: true },
-    style: {
-      headerColor: "#1E407C",
-      userMessageBackgroundColor: "#96BEE6",
-      primaryColor: "#1E407C",
-      showBackgroundGradient: true
-    },
-    layout: { form: "custom", customElement: mount, showOrchestrateHeader: true }
+    ...IBM_CONFIG,
+    layout: {
+      form: "custom",
+      customElement: mount,
+      showOrchestrateHeader: true
+    }
   };
 
-  const s = doc.createElement("script");
-  s.src = "https://us-south.watson-orchestrate.cloud.ibm.com/wxochat/wxoLoader.js?embed=true";
-  s.onload = function () {
-    frame.contentWindow.wxoLoader.init();
-  };
-  doc.head.appendChild(s);
+  function createChatController(win, root) {
+    const INPUT_SELECTOR = [
+      "textarea",
+      'input[type="text"]',
+      'input[type="search"]',
+      'input[type="email"]',
+      'input[type="url"]',
+      'input[type="tel"]',
+      "input:not([type])",
+      '[contenteditable="true"]'
+    ].join(",");
 
-});
+    const MESSAGE_SCAN_SELECTOR = "div, article, section, li, p";
+    const HEADER_SELECTOR = [
+      ".wxo-header-container",
+      "header",
+      '[class*="header"]',
+      '[class*="Header"]'
+    ].join(",");
+
+    const state = {
+      scroller: null,
+      composer: null,
+      activeMessage: null,
+      waitingForResponse: false,
+      pendingAnchor: false,
+      keyboardOpen: false,
+      rafId: 0,
+      mutationObserver: null,
+      resizeObserver: null,
+      settleTimer: 0
+    };
+
+    function schedule(fn) {
+      if (state.rafId) return;
+      state.rafId = win.requestAnimationFrame(() => {
+        state.rafId = 0;
+        fn();
+      });
+    }
+
+    function isElement(node) {
+      return !!node && node.nodeType === 1;
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function isScrollable(el) {
+      if (!isElement(el)) return false;
+      const cs = win.getComputedStyle(el);
+      const overflowY = cs.overflowY || cs.overflow || "";
+      if (!/(auto|scroll|overlay)/i.test(overflowY)) return false;
+      if (el.clientHeight < 80) return false;
+      return el.scrollHeight - el.clientHeight > 16;
+    }
+
+    function findScroller() {
+      const nodes = [root, ...Array.from(root.querySelectorAll("*"))];
+      const candidates = nodes.filter(isScrollable);
+
+      candidates.sort((a, b) => {
+        const aScore = (a.scrollHeight - a.clientHeight) + a.clientHeight;
+        const bScore = (b.scrollHeight - b.clientHeight) + b.clientHeight;
+        return bScore - aScore;
+      });
+
+      return candidates[0] || null;
+    }
+
+    function findComposer() {
+      const input = root.querySelector(INPUT_SELECTOR);
+      if (!input) return null;
+
+      return (
+        input.closest("form") ||
+        input.closest('[role="form"]') ||
+        input.closest('[class*="footer"]') ||
+        input.closest('[class*="composer"]') ||
+        input.closest('[class*="input"]') ||
+        input.parentElement
+      );
+    }
+
+    function headerHeight() {
+      const header = root.querySelector(HEADER_SELECTOR);
+      return header ? Math.ceil(header.getBoundingClientRect().height) : 0;
+    }
+
+    function topGap() {
+      return headerHeight() + 8;
+    }
+
+    function ignoredElement(el) {
+      return !!(
+        el.closest("form") ||
+        el.closest("textarea") ||
+        el.closest("input") ||
+        el.closest('[contenteditable="true"]') ||
+        el.closest('[class*="footer"]') ||
+        el.closest('[class*="composer"]') ||
+        el.closest('[class*="input"]') ||
+        el.closest(".cds--menu") ||
+        el.closest('[role="menu"]') ||
+        el.closest(HEADER_SELECTOR)
+      );
+    }
+
+    function looksLikeMessage(el) {
+      if (!isElement(el)) return false;
+      if (el === root || el === state.scroller || el === state.composer) return false;
+      if (ignoredElement(el)) return false;
+
+      const rect = el.getBoundingClientRect();
+      if (rect.width < 120 || rect.height < 24) return false;
+
+      const text = (el.innerText || "").trim();
+      const richContent = el.querySelector("p, li, pre, code, table, img, svg, ol, ul, h1, h2, h3, h4, h5, h6");
+
+      if (text.length < 2 && !richContent) return false;
+
+      const childCount = el.children ? el.children.length : 0;
+      if (childCount > 20 && rect.height > (state.scroller?.clientHeight || 0) * 0.9) return false;
+
+      return true;
+    }
+
+    function collectMessageCandidates(scope) {
+      const base = scope && isElement(scope) ? [scope] : [];
+      const descendants = scope && isElement(scope)
+        ? Array.from(scope.querySelectorAll(MESSAGE_SCAN_SELECTOR))
+        : Array.from(root.querySelectorAll(MESSAGE_SCAN_SELECTOR));
+
+      return [...base, ...descendants].filter(looksLikeMessage);
+    }
+
+    function latestMessageCandidate(scope) {
+      const candidates = collectMessageCandidates(scope);
+
+      candidates.sort((a, b) => {
+        const ar = a.getBoundingClientRect();
+        const br = b.getBoundingClientRect();
+        if (ar.bottom !== br.bottom) return ar.bottom - br.bottom;
+        return ar.top - br.top;
+      });
+
+      return candidates[candidates.length - 1] || null;
+    }
+
+    function latestFromMutations(mutations) {
+      const pool = [];
+
+      for (const mutation of mutations) {
+        if (mutation.type === "childList") {
+          mutation.addedNodes.forEach((node) => {
+            if (!isElement(node)) return;
+            pool.push(...collectMessageCandidates(node));
+          });
+        }
+
+        if (mutation.type === "characterData") {
+          const parent = mutation.target && mutation.target.parentElement;
+          if (parent) {
+            pool.push(...collectMessageCandidates(parent));
+          }
+        }
+      }
+
+      pool.sort((a, b) => {
+        const ar = a.getBoundingClientRect();
+        const br = b.getBoundingClientRect();
+        if (ar.bottom !== br.bottom) return ar.bottom - br.bottom;
+        return ar.top - br.top;
+      });
+
+      return pool[pool.length - 1] || null;
+    }
+
+    function refreshNodes() {
+      state.scroller = findScroller();
+      state.composer = findComposer();
+
+      if (state.scroller) {
+        state.scroller.style.overscrollBehavior = "contain";
+        state.scroller.style.webkitOverflowScrolling = "touch";
+        state.scroller.style.overflowAnchor = "none";
+        state.scroller.style.scrollBehavior = "auto";
+      }
+    }
+
+    function scrollElementTopIntoView(el) {
+      if (!state.scroller || !el) return;
+
+      const scrollerRect = state.scroller.getBoundingClientRect();
+      const elementRect = el.getBoundingClientRect();
+      const desiredTop = scrollerRect.top + topGap();
+      const delta = elementRect.top - desiredTop;
+
+      if (Math.abs(delta) < 2) return;
+
+      const next = clamp(
+        state.scroller.scrollTop + delta,
+        0,
+        Math.max(0, state.scroller.scrollHeight - state.scroller.clientHeight)
+      );
+
+      state.scroller.scrollTop = next;
+    }
+
+    function anchorActiveMessageIfAllowed() {
+      if (!state.activeMessage || !root.contains(state.activeMessage)) return;
+      if (state.keyboardOpen) {
+        state.pendingAnchor = true;
+        return;
+      }
+      scrollElementTopIntoView(state.activeMessage);
+      state.pendingAnchor = false;
+    }
+
+    function markWaitingForResponse() {
+      state.waitingForResponse = true;
+      state.activeMessage = null;
+      state.pendingAnchor = false;
+    }
+
+    function maybeAnchorNewResponse(mutations) {
+      if (!state.waitingForResponse) return false;
+
+      const candidate = latestFromMutations(mutations) || latestMessageCandidate();
+      if (!candidate) return false;
+
+      state.activeMessage = candidate;
+      state.waitingForResponse = false;
+      state.pendingAnchor = true;
+
+      schedule(anchorActiveMessageIfAllowed);
+      return true;
+    }
+
+    function stabilizeDuringStreaming() {
+      if (!state.activeMessage) return;
+      if (state.keyboardOpen) {
+        state.pendingAnchor = true;
+        return;
+      }
+      schedule(anchorActiveMessageIfAllowed);
+    }
+
+    state.mutationObserver = new win.MutationObserver((mutations) => {
+      refreshNodes();
+
+      if (maybeAnchorNewResponse(mutations)) {
+        return;
+      }
+
+      if (state.activeMessage) {
+        stabilizeDuringStreaming();
+      }
+    });
+
+    state.mutationObserver.observe(root, {
+      childList: true,
+      subtree: true,
+      characterData: true
+    });
+
+    if ("ResizeObserver" in win) {
+      state.resizeObserver = new win.ResizeObserver(() => {
+        refreshNodes();
+        if (!state.keyboardOpen && state.activeMessage) {
+          schedule(anchorActiveMessageIfAllowed);
+        }
+      });
+      state.resizeObserver.observe(root);
+    }
+
+    root.addEventListener("focusin", (event) => {
+      const target = event.target;
+      if (!isElement(target)) return;
+      if (!target.matches(INPUT_SELECTOR)) return;
+
+      state.keyboardOpen = true;
+      state.pendingAnchor = !!state.activeMessage;
+
+      if (state.settleTimer) {
+        win.clearTimeout(state.settleTimer);
+        state.settleTimer = 0;
+      }
+    }, true);
+
+    root.addEventListener("keydown", (event) => {
+      const target = event.target;
+      if (!isElement(target)) return;
+      if (!target.matches(INPUT_SELECTOR)) return;
+
+      if (event.key === "Enter" && !event.shiftKey) {
+        markWaitingForResponse();
+      }
+    }, true);
+
+    root.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!isElement(target)) return;
+
+      const button = target.closest('button, [role="button"]');
+      if (!button) return;
+      if (!state.composer) return;
+      if (!state.composer.contains(button)) return;
+
+      markWaitingForResponse();
+    }, true);
+
+    refreshNodes();
+
+    return {
+      onViewportResize(box, baselineHeight) {
+        refreshNodes();
+
+        const ratio = baselineHeight ? (box.height / baselineHeight) : 1;
+        state.keyboardOpen = ratio < 0.82;
+
+        if (state.keyboardOpen) {
+          if (state.settleTimer) {
+            win.clearTimeout(state.settleTimer);
+            state.settleTimer = 0;
+          }
+          return;
+        }
+
+        if (state.settleTimer) {
+          win.clearTimeout(state.settleTimer);
+        }
+
+        state.settleTimer = win.setTimeout(() => {
+          state.settleTimer = 0;
+          refreshNodes();
+          if (state.pendingAnchor || state.activeMessage) {
+            anchorActiveMessageIfAllowed();
+          }
+        }, 120);
+      },
+      destroy() {
+        if (state.settleTimer) win.clearTimeout(state.settleTimer);
+        if (state.mutationObserver) state.mutationObserver.disconnect();
+        if (state.resizeObserver) state.resizeObserver.disconnect();
+      }
+    };
+  }
+
+  const loader = doc.createElement("script");
+  loader.src = "https://us-south.watson-orchestrate.cloud.ibm.com/wxochat/wxoLoader.js?embed=true";
+  loader.addEventListener("load", function () {
+    try {
+      frame.contentWindow.wxoLoader.init();
+
+      controller = createChatController(frame.contentWindow, mount);
+      syncFrameToViewport();
+    } catch (e) {
+      console.error("[WXO] wxoLoader.init() failed", e);
+    }
+  });
+
+  doc.head.appendChild(loader);
+})();
 </script>
+
 </body>
 </html>
