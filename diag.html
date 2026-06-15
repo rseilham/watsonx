@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GO WebView Diagnostics</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0a0a0a;
+      color: #e8e8e8;
+      padding: 20px 16px 40px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #96bee6;
+      margin-bottom: 4px;
+      letter-spacing: -0.2px;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 24px;
+    }
+
+    .section {
+      background: #1c1c1e;
+      border: 1px solid #2c2c2e;
+      border-radius: 10px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .section-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid #2c2c2e;
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #888;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 10px 16px;
+      border-bottom: 1px solid #1e1e20;
+      gap: 12px;
+    }
+
+    .row:last-child { border-bottom: none; }
+
+    .row-label {
+      color: #aaa;
+      font-size: 13px;
+      flex-shrink: 0;
+      padding-top: 1px;
+    }
+
+    .row-value {
+      font-size: 13px;
+      text-align: right;
+      word-break: break-all;
+      color: #e8e8e8;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .pill-yes { background: #0f4a2e; color: #4ade80; }
+    .pill-no  { background: #4a1010; color: #f87171; }
+    .pill-warn { background: #4a3a00; color: #fbbf24; }
+    .pill-info { background: #0a2a4a; color: #60a5fa; }
+
+    .ua-box {
+      padding: 12px 16px;
+      font-family: monospace;
+      font-size: 11px;
+      color: #aaa;
+      word-break: break-all;
+      line-height: 1.6;
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 13px 16px;
+      background: #1e407c;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 10px;
+      text-align: left;
+    }
+
+    .btn:active { opacity: 0.8; }
+    .btn-secondary { background: #2c2c2e; color: #e8e8e8; }
+
+    .btn-label {
+      font-size: 11px;
+      font-weight: 400;
+      color: rgba(255,255,255,0.6);
+      display: block;
+      margin-top: 2px;
+    }
+
+    .log-box {
+      background: #111;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-family: monospace;
+      font-size: 11px;
+      color: #aaa;
+      min-height: 60px;
+      max-height: 200px;
+      overflow-y: auto;
+      word-break: break-all;
+      line-height: 1.7;
+    }
+
+    .log-ok   { color: #4ade80; }
+    .log-err  { color: #f87171; }
+    .log-warn { color: #fbbf24; }
+    .log-info { color: #60a5fa; }
+
+    .bridge-name {
+      font-family: monospace;
+      font-size: 12px;
+      color: #96bee6;
+    }
+
+    .methods {
+      font-family: monospace;
+      font-size: 11px;
+      color: #666;
+      margin-top: 2px;
+      word-break: break-all;
+    }
+
+    .copy-btn {
+      background: #2c2c2e;
+      border: none;
+      color: #96bee6;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      margin-top: 10px;
+      float: right;
+    }
+  </style>
+</head>
+<body>
+
+<h1>GO WebView Diagnostics</h1>
+<p class="subtitle">Lanely Labs · load this inside Penn State GO to inspect the shell</p>
+
+<div class="section">
+  <div class="section-header">Identity</div>
+  <div class="row">
+    <span class="row-label">Context</span>
+    <span class="row-value" id="ctx-frame">—</span>
+  </div>
+  <div class="row">
+    <span class="row-label">Platform</span>
+    <span class="row-value" id="ctx-platform">—</span>
+  </div>
+  <div class="row">
+    <span class="row-label">Android WebView?</span>
+    <span class="row-value" id="ctx-wv">—</span>
+  </div>
+  <div class="row">
+    <span class="row-label">iOS WKWebView?</span>
+    <span class="row-value" id="ctx-ios">—</span>
+  </div>
+  <div class="row">
+    <span class="row-label">navigator.share</span>
+    <span class="row-value" id="ctx-share">—</span>
+  </div>
+  <div class="row">
+    <span class="row-label">navigator.canShare</span>
+    <span class="row-value" id="ctx-canshare">—</span>
+  </div>
+  <div class="row">
+    <span class="row-label">File constructor</span>
+    <span class="row-value" id="ctx-file">—</span>
+  </div>
+  <div class="row">
+    <span class="row-label">FileReader</span>
+    <span class="row-value" id="ctx-filereader">—</span>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-header">User-Agent string</div>
+  <div class="ua-box" id="ua-box">loading…</div>
+  <button class="copy-btn" onclick="copyUA()">Copy UA</button>
+  <div style="clear:both"></div>
+</div>
+
+<div class="section">
+  <div class="section-header">Native bridges detected on window</div>
+  <div id="bridges-list" style="padding: 12px 16px; color: #666; font-size: 13px;">scanning…</div>
+</div>
+
+<div class="section">
+  <div class="section-header">PDF download tests</div>
+  <div style="padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;">
+
+    <button class="btn" onclick="testAnchorDownload()">
+      Test &lt;a download&gt; blob click
+      <span class="btn-label">Simulates the current page's primary download mechanism</span>
+    </button>
+
+    <button class="btn" onclick="testDataUrl()">
+      Test data: URL anchor click
+      <span class="btn-label">v1.0.15–16 approach — silent no-op in Modo WebView</span>
+    </button>
+
+    <button class="btn" onclick="testWindowOpen()">
+      Test window.open(blob)
+      <span class="btn-label">Fallback used alongside &lt;a download&gt;</span>
+    </button>
+
+    <button class="btn" onclick="testWebShare()">
+      Test navigator.share (file)
+      <span class="btn-label">iOS + Android Chrome path</span>
+    </button>
+
+    <button class="btn btn-secondary" onclick="clearLog()">Clear log</button>
+
+    <div class="log-box" id="log"></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-header">Raw window keys (bridge candidates)</div>
+  <div id="window-keys" style="padding: 12px 16px; font-family: monospace; font-size: 11px; color: #555; word-break: break-all; line-height: 1.8;">scanning…</div>
+</div>
+
+<script>
+  var ua = navigator.userAgent;
+  var isAndroid = /Android/i.test(ua);
+  var isAndroidWV = isAndroid && /;\s*wv\)/.test(ua);
+  var isIOS = /iPhone|iPad|iPod/i.test(ua);
+  var isWK = isIOS && /AppleWebKit/i.test(ua) && !/CriOS|FxiOS/i.test(ua);
+
+  function pill(yes, trueLabel, falseLabel) {
+    trueLabel = trueLabel || 'yes';
+    falseLabel = falseLabel || 'no';
+    var cls = yes ? 'pill-yes' : 'pill-no';
+    return '<span class="pill ' + cls + '">' + (yes ? trueLabel : falseLabel) + '</span>';
+  }
+
+  function pillInfo(label) {
+    return '<span class="pill pill-info">' + label + '</span>';
+  }
+
+  document.getElementById('ctx-frame').innerHTML = pillInfo(window.self === window.top ? 'top frame' : 'iframe');
+  document.getElementById('ctx-platform').innerHTML = pillInfo(isAndroid ? 'Android' : isIOS ? 'iOS' : 'other');
+  document.getElementById('ctx-wv').innerHTML = pill(isAndroidWV) + (isAndroid && !isAndroidWV ? ' <span style="font-size:11px;color:#fbbf24">(Android but no "; wv)" token — plain Chrome or Modo stripped it)</span>' : '');
+  document.getElementById('ctx-ios').innerHTML = pill(isWK);
+  document.getElementById('ctx-share').innerHTML = pill(typeof navigator.share === 'function');
+  document.getElementById('ctx-canshare').innerHTML = pill(typeof navigator.canShare === 'function');
+  document.getElementById('ctx-file').innerHTML = pill(typeof File !== 'undefined');
+  document.getElementById('ctx-filereader').innerHTML = pill(typeof FileReader !== 'undefined');
+
+  document.getElementById('ua-box').textContent = ua;
+
+  function copyUA() {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(ua).then(function() { alert('UA copied!'); });
+    } else {
+      prompt('Copy this:', ua);
+    }
+  }
+
+  var BRIDGE_NAMES = [
+    'MyResourceNative','Android','AndroidInterface','AndroidBridge','AndroidFunction',
+    'JSBridge','jsBridge','NativeBridge','nativeBridge','JSInterface','jsinterface',
+    'kgoBridge','KGO','Kurogo','kurogo','Modo','modo','ModoBridge','MODO',
+    'ReactNativeWebView','flutter_inappwebview','webkit','ModoNative','goNative'
+  ];
+
+  function scanBridges() {
+    var found = [];
+    for (var i = 0; i < BRIDGE_NAMES.length; i++) {
+      var nm = BRIDGE_NAMES[i];
+      var obj;
+      try { obj = window[nm]; } catch(e) { continue; }
+      if (obj && (typeof obj === 'object' || typeof obj === 'function')) {
+        var methods = [];
+        try {
+          for (var k in obj) {
+            try { if (typeof obj[k] === 'function') methods.push(k); } catch(e) {}
+          }
+        } catch(e) {}
+        found.push({ name: nm, methods: methods });
+      }
+    }
+    var el = document.getElementById('bridges-list');
+    if (found.length === 0) {
+      el.innerHTML = '<span style="color:#f87171">None found — no known native bridge objects on window</span>';
+    } else {
+      el.innerHTML = found.map(function(b) {
+        return '<div style="margin-bottom:10px">'
+          + '<div class="bridge-name">' + b.name + '</div>'
+          + '<div class="methods">' + (b.methods.length ? b.methods.join(', ') : '(no enumerable methods)') + '</div>'
+          + '</div>';
+      }).join('');
+    }
+  }
+
+  function scanWindowKeys() {
+    var interesting = [];
+    try {
+      var keys = Object.keys(window);
+      var skip = /^(webkit|on|performance|screen|location|history|navigator|document|window|self|top|parent|frames|length|closed|opener|frameElement|external|crypto|indexedDB|caches|localStorage|sessionStorage|speechSynthesis|visualViewport|devicePixelRatio|innerWidth|innerHeight|outerWidth|outerHeight|scrollX|scrollY|pageXOffset|pageYOffset|screenX|screenY|screenLeft|screenTop|status|defaultStatus|name|toolbar|menubar|scrollbars|locationbar|personalbar|statusbar|directories|frameElement|origin|isSecureContext|crossOriginIsolated|fetch|Headers|Request|Response|URL|URLSearchParams|Blob|File|FileReader|FormData|XMLHttpRequest|WebSocket|Worker|ServiceWorker|Notification|Promise|Symbol|Map|Set|WeakMap|WeakSet|Proxy|Reflect|Int8Array|Uint8Array|Uint16Array|Int16Array|Uint32Array|Int32Array|Float32Array|Float64Array|BigInt64Array|BigUint64Array|ArrayBuffer|SharedArrayBuffer|DataView|Atomics|JSON|Math|Date|RegExp|Error|AggregateError|EvalError|RangeError|ReferenceError|SyntaxError|TypeError|URIError|Object|Array|Function|String|Number|Boolean|BigInt|NaN|Infinity|undefined|null|eval|isFinite|isNaN|parseFloat|parseInt|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|escape|unescape|alert|confirm|prompt|print|open|close|stop|focus|blur|scroll|scrollTo|scrollBy|resizeTo|resizeBy|moveTo|moveBy|requestAnimationFrame|cancelAnimationFrame|requestIdleCallback|cancelIdleCallback|setTimeout|clearTimeout|setInterval|clearInterval|queueMicrotask|createImageBitmap|structuredClone|postMessage|addEventListener|removeEventListener|dispatchEvent|matchMedia|getComputedStyle|getSelection|find|back|forward|home|clearImmediate|setImmediate)/;
+      for (var i = 0; i < keys.length; i++) {
+        var k = keys[i];
+        if (!skip.test(k)) {
+          try {
+            var v = window[k];
+            if (typeof v === 'object' || typeof v === 'function') interesting.push(k);
+          } catch(e) {}
+        }
+      }
+    } catch(e) {}
+    document.getElementById('window-keys').textContent = interesting.length
+      ? interesting.join(', ')
+      : '(nothing unexpected found)';
+  }
+
+  scanBridges();
+  scanWindowKeys();
+
+  var logEl = document.getElementById('log');
+  function log(msg, cls) {
+    var line = document.createElement('div');
+    line.className = cls || '';
+    line.textContent = new Date().toLocaleTimeString() + ' ' + msg;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function clearLog() {
+    logEl.innerHTML = '';
+  }
+
+  function makeTinyPdf() {
+    var content = '%PDF-1.4\n1 0 obj<</Type /Catalog /Pages 2 0 R>>endobj 2 0 obj<</Type /Pages /Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type /Page /MediaBox[0 0 200 50]/Parent 2 0 R /Resources<<>>>>endobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000058 00000 n\n0000000115 00000 n\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n190\n%%EOF';
+    return new Blob([content], { type: 'application/pdf' });
+  }
+
+  function testAnchorDownload() {
+    log('→ testing <a download> with blob: URL…', 'log-info');
+    try {
+      var blob = makeTinyPdf();
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'diag-test.pdf';
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function() {
+        if (a.parentNode) a.parentNode.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 2000);
+      log('✓ <a download> click fired — check if a download appeared or if it was silent', 'log-ok');
+    } catch(e) {
+      log('✗ <a download> threw: ' + e, 'log-err');
+    }
+  }
+
+  function testDataUrl() {
+    log('→ testing <a download> with data: URL…', 'log-info');
+    try {
+      var blob = makeTinyPdf();
+      var reader = new FileReader();
+      reader.onload = function() {
+        try {
+          var a = document.createElement('a');
+          a.href = reader.result;
+          a.download = 'diag-test-data.pdf';
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(function() { if (a.parentNode) a.parentNode.removeChild(a); }, 2000);
+          log('✓ data: URL anchor click fired — did anything happen?', 'log-ok');
+        } catch(e) {
+          log('✗ data: URL click threw: ' + e, 'log-err');
+        }
+      };
+      reader.onerror = function(e) { log('✗ FileReader failed: ' + e, 'log-err'); };
+      reader.readAsDataURL(blob);
+    } catch(e) {
+      log('✗ data: URL test threw: ' + e, 'log-err');
+    }
+  }
+
+  function testWindowOpen() {
+    log('→ testing window.open(blob: URL, "_blank")…', 'log-info');
+    try {
+      var blob = makeTinyPdf();
+      var url = URL.createObjectURL(blob);
+      var win = window.open(url, '_blank');
+      setTimeout(function() { URL.revokeObjectURL(url); }, 10000);
+      if (win) {
+        log('✓ window.open returned a window object — did anything open?', 'log-ok');
+      } else {
+        log('⚠ window.open returned null — likely blocked by WebView or popup blocker', 'log-warn');
+      }
+    } catch(e) {
+      log('✗ window.open threw: ' + e, 'log-err');
+    }
+  }
+
+  async function testWebShare() {
+    log('→ testing navigator.share with File…', 'log-info');
+    if (typeof navigator.share !== 'function') {
+      log('✗ navigator.share not available in this context', 'log-err');
+      return;
+    }
+    try {
+      var blob = makeTinyPdf();
+      var file = new File([blob], 'diag-test.pdf', { type: 'application/pdf' });
+      if (typeof navigator.canShare === 'function') {
+        var can = navigator.canShare({ files: [file] });
+        log('canShare({ files }) → ' + can, can ? 'log-ok' : 'log-warn');
+        if (!can) { log('⚠ canShare returned false — share will likely fail', 'log-warn'); return; }
+      } else {
+        log('⚠ navigator.canShare not available — trying share anyway', 'log-warn');
+      }
+      await navigator.share({ files: [file], title: 'diag-test.pdf' });
+      log('✓ navigator.share resolved — user picked a destination', 'log-ok');
+    } catch(e) {
+      if (e && e.name === 'AbortError') {
+        log('⚠ user cancelled the share sheet', 'log-warn');
+      } else {
+        log('✗ navigator.share rejected: ' + e, 'log-err');
+      }
+    }
+  }
+</script>
+</body>
+</html>
