@@ -1,11 +1,57 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login Test</title>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #ffffff;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    .button {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+      margin-bottom: 16px;
+      padding: 16px;
+      text-align: center;
+      text-decoration: none;
+      font-size: 18px;
+      color: #ffffff;
+      background: #005fa9;
+      border-radius: 8px;
+    }
+  </style>
+</head>
 
 <body>
+  <div class="container">
 
-<a href="https://login.microsoftonline.com/?_kgourl_type=external&_kgourl_externalbrowser=0&_kgourl_nativebrowser=external_embedded">Test Login</a><br><br>
+    <a class="button"
+       href="https://login.microsoftonline.com/?_kgourl_type=external&_kgourl_externalbrowser=0&_kgourl_nativebrowser=external_embedded">
+      Test Login
+    </a>
 
-<a href="https://apple.com?_kgourl_type=external&_kgourl_externalbrowser=0&_kgourl_nativebrowser=external_embedded">Apple</a>
-  
+    <a class="button"
+       href="https://login.microsoftonline.com/7cf48d45-3ddb-4389-a9c1-c115526eb52e?_kgourl_type=external&_kgourl_externalbrowser=0&_kgourl_nativebrowser=external_embedded">
+      Test Login with Variables
+    </a>
+
+    <a class="button"
+       href="https://apple.com?_kgourl_type=external&_kgourl_externalbrowser=0&_kgourl_nativebrowser=external_embedded">
+      Apple
+    </a>
+
+  </div>
 </body>
-  
 </html>
